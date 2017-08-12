@@ -8,10 +8,13 @@ import numpy as np
 
 import keras
 from keras.models import Sequential
+from keras.layers.core import Reshape, Flatten
 from keras.models import Model
 from keras.layers import Dense, Activation, Dropout, Input
 from keras.layers.noise import AlphaDropout
 from keras.layers.merge import concatenate
+from keras.layers.convolutional import Conv1D
+from keras.layers.pooling import MaxPooling1D
 import sys
 
 STATES={}
@@ -23,8 +26,8 @@ CODE_SIZE={
 }
 
 
-layers=[('dany_code',[512,128]),('image_code',[512,128]),('word_code',[128])]
-layers_deep=[128]
+layers=[('dany_code',[64]),('image_code',[64] ),('word_code',[64])]
+layers_deep=[32]
     #model.fit([dany_code, word_code, image_code], salida, batch_size=100,epochs=20)
 
 # Función principal (interfaz con línea de comandos)
@@ -98,13 +101,26 @@ if __name__ == '__main__':
         inputs.append(input_layer)
         conn=input_layer
         for units in lus:
+
             conn = Dense(units,
                     kernel_initializer=kernel_initializer)(conn)
         layers_middle.append(conn)
 
     merged = concatenate(layers_middle)
+    rs=0
+    for ln,lu in layers:
+        rs+=lu[-1]
 
-    conn=merged
+    reshape = Reshape((rs,1))(merged)
+    conv1=Conv1D(32,3)(reshape)
+    maxp1=MaxPooling1D()(conv1)
+
+    conv2=Conv1D(32,3)(maxp1)
+    maxp2=MaxPooling1D()(conv2)
+
+
+    flat=Flatten()(maxp2)
+    conn=flat
     for units in layers_deep:
         dense=Dense(units, kernel_initializer=kernel_initializer,
                 activation="relu"
