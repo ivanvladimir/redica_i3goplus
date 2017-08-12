@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     nsplit=4000
     dany_code_val=dany_code[:nsplit,]
-    image_code_val=image_code[:nsplit,]
+a    image_code_val=image_code[:nsplit,]
     word_code_val=word_code[:nsplit,]
     salida_val=salida[:nsplit]
     dany_code=dany_code[nsplit:,]
