@@ -13,8 +13,8 @@ from keras.models import Model
 from keras.layers import Dense, Activation, Dropout, Input
 from keras.layers.noise import AlphaDropout
 from keras.layers.merge import concatenate
-from keras.layers.convolutional import Conv1D
-from keras.layers.pooling import MaxPooling1D
+from keras.layers.convolutional import Conv1D, Conv2D
+from keras.layers.pooling import MaxPooling1D, MaxPooling2D
 import sys
 
 STATES={}
@@ -26,8 +26,8 @@ CODE_SIZE={
 }
 
 
-layers=[('dany_code',[64]),('image_code',[64] ),('word_code',[64])]
-layers_deep=[32]
+layers=[('image_code',[128] ),('word_code',[128])]
+layers_deep=[128]
     #model.fit([dany_code, word_code, image_code], salida, batch_size=100,epochs=20)
 
 # Función principal (interfaz con línea de comandos)
@@ -87,9 +87,9 @@ if __name__ == '__main__':
     data_output_val=data_output[:nsplit]
     data_output=data_output[nsplit:]
 
-    activation='selu'
-    #dropout = Dropout
-    dropout = AlphaDropout
+    activation='relu'
+    dropout = Dropout
+    #dropout = AlphaDropout
     dropout_rate = 0.2
     kernel_initializer="lecun_normal"
     optimizer='adam'
@@ -111,19 +111,21 @@ if __name__ == '__main__':
     for ln,lu in layers:
         rs+=lu[-1]
 
-    reshape = Reshape((rs,1))(merged)
-    conv1=Conv1D(32,3)(reshape)
-    maxp1=MaxPooling1D()(conv1)
+    reshape = Reshape((int(rs/4),4,1))(merged)
+    conv1=Conv2D(32,3,padding='same')(reshape)
+    maxp1=MaxPooling2D((2,1))(conv1)
 
-    conv2=Conv1D(32,3)(maxp1)
-    maxp2=MaxPooling1D()(conv2)
+    conv2=Conv2D(32,3,padding='same')(maxp1)
+    maxp2=MaxPooling2D((2,1))(conv2)
 
+    conv3=Conv2D(16,3,padding="same")(maxp2)
+    maxp3=MaxPooling2D((2,1))(conv3)
 
-    flat=Flatten()(maxp2)
+    flat=Flatten()(maxp3)
     conn=flat
     for units in layers_deep:
         dense=Dense(units, kernel_initializer=kernel_initializer,
-                activation="relu"
+                activation=activation
             )(conn)
         conn=dropout(dropout_rate)(dense)
     output=Dense(1,activation="sigmoid")(conn)
@@ -135,7 +137,7 @@ if __name__ == '__main__':
     print(model.summary())
 
     model.fit(data, data_output, 
-            batch_size=100,epochs=220,validation_data=(data_val,data_output_val))
+            batch_size=100,epochs=22,validation_data=(data_val,data_output_val))
 
     model.save_weights(opts.model, overwrite=True)
 
